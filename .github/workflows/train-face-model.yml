@@ -1,0 +1,42 @@
+name: Train MLP face-recognition demo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "train.py"
+      - "predict.py"
+      - "prepare_dataset.py"
+      - "run_training.py"
+      - "requirements.txt"
+      - "tests/**"
+      - ".github/workflows/train-face-model.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Offline pipeline validation
+        run: python -m pytest -q
+      - name: Train Olivetti face classifier
+        run: python run_training.py
+      - name: Check saved model
+        run: test -s artifacts/face_model.joblib
+      - name: Save model as CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: olivetti-mlp-face-model
+          path: artifacts/face_model.joblib
+          retention-days: 7
