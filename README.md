@@ -1,26 +1,34 @@
 # Face Recognition — PCA + LDA + MLP
 
-This repository originally contained only a notebook. It now includes a reproducible training and inference entrypoint. **No dataset or trained model is committed**, so predictions cannot run until a model has been trained using consented images.
+A reproducible research/demo face-classification pipeline with dimensionality reduction and a multilayer perceptron. Originally a Jupyter notebook; now includes training, prediction, and dataset preparation scripts.
 
-## Local run
+## Train using public research data
 
-Use Python 3.11+:
+Python 3.11+ required. The Olivetti Faces dataset contains 400 face images from 40 subjects. The dataset is downloaded the first time the preparation script is run; internet is required.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-# Add consented training photos in dataset/<person-name>/*.jpg
-python train.py --dataset dataset --output artifacts/face_model.joblib
-python predict.py path/to/test-photo.jpg --model artifacts/face_model.joblib
+python run_training.py
+python predict.py dataset/subject_00/image_000.png
 ```
 
-Training uses 100×100 grayscale images, PCA, LDA, then a two-hidden-layer MLP. A stratified test accuracy is printed when sufficient images exist; with too few images, no misleading accuracy is reported.
+The trained model is written to `artifacts/face_model.joblib`. Training prints stratified holdout accuracy when sample counts permit. **Do not publish a biometric dataset or face model to a public repository.** The files are ignored by Git.
 
-**Important:** This predicts among enrolled classes only. It cannot reliably identify unknown people, verify identities, or establish real-world biometric authentication. No face detection is included; images should be cropped to the face. Do not treat classifier probabilities as verified identity confidence.
+You can also use your own consented images under `dataset/<person-name>/*.jpg`, then run `python train.py --dataset dataset`. Do not mix Olivetti research identities with real enrolled users in a production system.
 
-## Deployment
+## Tests
 
-Vercel can host a Next.js frontend, but not train this model on every request. For production inference, train offline, deploy the saved pipeline to a Python-serving backend with adequate resources, secure its endpoints, and connect your Vercel frontend via server-side environment variables. Do not publish the dataset or model artifacts containing sensitive biometric information. Set policies for consent, retention, and deletion.
+```bash
+pip install pytest
+python -m pytest -q
+```
 
-The dataset and artifacts are intentionally excluded from version control.
+The included offline test uses *synthetic non-face inputs* only to check that the pipeline trains, saves and predicts. It does **not** establish recognition accuracy or model quality.
+
+## Limitations and deployment
+
+This classifies cropped faces among identities present in its training set; it is **not** real-time face detection, verified authentication, or reliable unknown-person rejection. Classifier probabilities are not calibrated identity assurances.
+
+Train offline. To build an online demo, host secure inference in a persistent Python API with a trusted trained model; Vercel can host the user interface. Separate enrollment, data retention, consent, deletion policies and adequate identity verification safeguards are required for real-world applications.
